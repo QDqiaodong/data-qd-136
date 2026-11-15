@@ -1,0 +1,50 @@
+{
+  "accounts": [
+    {
+      "id": "cash",
+      "normal": "debit"
+    },
+    {
+      "id": "sales",
+      "normal": "credit"
+    },
+    {
+      "id": "cost",
+      "normal": "debit"
+    }
+  ],
+  "entries": [
+    {
+      "id": "sale",
+      "currency": "USD",
+      "lines": [
+        {
+          "account": "cash",
+          "side": "debit",
+          "amount": 1000
+        },
+        {
+          "account": "sales",
+          "side": "credit",
+          "amount": 1000
+        }
+      ]
+    },
+    {
+      "id": "expense",
+      "currency": "USD",
+      "lines": [
+        {
+          "account": "cost",
+          "side": "debit",
+          "amount": 300
+        },
+        {
+          "account": "cash",
+          "side": "credit",
+          "amount": 300
+        }
+      ]
+    }
+  ]
+}
