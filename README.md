@@ -3,6 +3,7 @@
 Exact minor-unit journals and currency-separated trial balances。业务输入、计算和当前边界详见 [数据契约](docs/contract.md)。
 本地开放项核销工作台（独立 `open-items` 子命令组）的字段、报告结构与异常约定详见 [开放项工作台契约](docs/open-items.md)。
 本地期间结转链工作台（独立 `close-chain` 子命令组）的请求字段、报告结构、异常与退出码详见 [期间结转链契约](docs/close-chain.md)。
+报价证据驱动的多币种分录折算（独立 `translate` 子命令）的报价图、折算账务、待处理与报告结构详见 [折算工作台契约](docs/translate.md)。
 
 ## 安装与演示
 
@@ -73,6 +74,29 @@ journal-check close-chain show  --store run/chain --generation <generation_id> -
 - Python 接口在 `journal_check.closechain`（`open_store/apply/show`，纯算法在
   `journal_check.closechain.engine`），异常均为 `ValueError` 子类，CLI 失败退出 2。
   完整契约见 [docs/close-chain.md](docs/close-chain.md)。
+
+## 报价证据折算工作台（translate）
+
+在保留 v1 试算命令、`analyze(data)` 与另两个工作台的同时，新增独立子命令，把原币分录快照按
+逐日报价证据折算为单一展示币种试算表，并把报价不可采信（矛盾或无路可达）的分录整条列为待处理。
+全程精确有理计算、四舍六入五成双，不用浮点；不读写开放项数据库与结转链存储，仅用标准库。
+
+```sh
+journal-check translate --source fixtures/translate_request.json --output run/translated.json
+```
+
+- 顶层恰为 `journal`、`target`、`rounding_account`、`entry_dates`、`quotes`，沿用 8MB 严格 JSON；
+  journal 先通过原 `parse_journal` 全部校验，原金额、借贷平衡与重复科目行规则不变。
+- 逐日期只采用当天有效报价，允许正/反方向换算；连通分量仅当所有闭合路径倍率乘积**严格为 1**
+  才可采信，输出精确约分倍率与可核算报价 ID 路径；矛盾给闭合见证、无路可达给可达币种集合，
+  不枚举全部路径、不用浮点容差或最短路掩盖矛盾，结果不随输入排列变化。
+- 每条原行分别精确折算并五成双舍入，重复科目行不提前合并；舍入为 0 的行仍逐行留存但不进试算表，
+  折算差额作为单独标记的追加行进 `rounding_account`，逐分录及整体核借贷相等。
+- 仅 `ready` 分录入目标账，`inconsistent`/`missing` 整条待处理且金额不泄漏；有待处理项仍退出 0，
+  结构/校验/计算/I/O 失败退出 2 并保留旧报告，输出拒绝符号链接与源同路径。
+- Python 接口在 `journal_check.translate`（`translate/run_file/publish`，纯报价图在
+  `journal_check.translate.rates`，校验与账务在 `journal_check.translate.engine`）。
+  完整契约见 [docs/translate.md](docs/translate.md)。
 
 ## 当前业务与样例
 # Journal trial balance v1

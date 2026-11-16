@@ -16,6 +16,11 @@ The close-chain workbench is another independent subcommand group::
     journal-check close-chain apply --store chain-dir --source request.json
     journal-check close-chain show  --store chain-dir [--generation id] --period id
 
+The translation workbench converts a multi-currency journal snapshot into a
+single display-currency trial balance from quote evidence::
+
+    journal-check translate --source request.json --output report.json
+
 Every workbench failure raises one of the documented exceptions, all of which
 are ``ValueError`` subclasses; the CLI prints the message to stderr, exits 2
 and leaves any existing output file untouched.
@@ -32,10 +37,13 @@ from .model import analyze
 from .openitems import workbench
 from .openitems.errors import OpenItemError
 from .openitems.storage import connect as open_items_connect
+from .translate import run_file
+from .translate.errors import TranslateError
 
 DESCRIPTION = 'Exact minor-unit journals and currency-separated trial balances'
 _FAILURE_TYPES = (ValueError, TypeError, KeyError, OSError, OverflowError,
-                  RecursionError, OpenItemError, CloseChainError)
+                  RecursionError, OpenItemError, CloseChainError,
+                  TranslateError)
 
 
 def run(source):
@@ -142,6 +150,29 @@ def _run_close_chain(argv):
 
 
 # ---------------------------------------------------------------------------
+# Translation subcommand
+# ---------------------------------------------------------------------------
+
+def _run_translate(argv):
+    parser = argparse.ArgumentParser(
+        prog='journal-check translate',
+        description='Quote-evidence multi-currency translation into one '
+                    'display currency trial balance')
+    parser.add_argument('--source', type=Path, required=True,
+                        help='translation request JSON, subject to the strict '
+                             '8 MB limit')
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args(argv)
+    if args.source.resolve() == args.output.resolve():
+        raise ValueError('input and output must differ')
+    report = run_file(args.source)
+    save(args.output, report)
+    print(json.dumps(report, sort_keys=True, ensure_ascii=False,
+                     allow_nan=False))
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -154,6 +185,8 @@ def main(argv=None):
         if argv and argv[0] == 'close-chain':
             _run_close_chain(argv[1:])
             return 0
+        if argv and argv[0] == 'translate':
+            return _run_translate(argv[1:])
     except _FAILURE_TYPES as error:
         print(str(error), file=sys.stderr)
         return 2
