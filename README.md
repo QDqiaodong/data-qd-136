@@ -1,6 +1,7 @@
 # data-qd-136 · 复式记账试算核验
 
 Exact minor-unit journals and currency-separated trial balances。业务输入、计算和当前边界详见 [数据契约](docs/contract.md)。
+本地开放项核销工作台（独立 `open-items` 子命令组）的字段、报告结构与异常约定详见 [开放项工作台契约](docs/open-items.md)。
 
 ## 安装与演示
 
@@ -26,6 +27,26 @@ python3 -m venv .venv
 
 src/journal_check/model.py 为业务模型，相关算法模块独立组织；common.py 提供受限JSON及报告发布，
 cli.py 衔接数据链路。fixtures 为明确自制样例，代码与样例采用MIT许可。
+
+## 开放项核销工作台（open-items）
+
+在保留 v1 试算命令与 `analyze(data)` 的同时，新增独立子命令组，用标准库 SQLite 账簿
+（`--db`）把已平衡往来分录按明确允许的 party 关系落账核销；不做汇兑、模糊匹配或外部财务认证。
+
+```sh
+journal-check open-items ingest --db run/ledger.sqlite --source fixtures/open_items_batch.json
+journal-check open-items status --db run/ledger.sqlite
+journal-check open-items plan   --db run/ledger.sqlite --request fixtures/open_items_plan.json
+journal-check open-items commit  --db run/ledger.sqlite --plan-id <plan_id>
+```
+
+- `ingest` 沿用 8MB 严格 JSON；顶层恰为 `batch_id`、`journal`、`items`，失败不留半批。
+- `plan` 在隐式二分图上先最大化整数核销总量，再按规则/开放项优先级与 id 的规范序做字典序最优；
+  结果由 `plan_id` 持久化，确定性且不依赖输入或行序。
+- `commit` 只认 `plan_id`，提交前重新判定组件，状态、扣减、可追溯分配与回执同事务全成全败；
+  竞争提交最多一份生效，重复提交跨进程返回原回执。
+- Python 接口在 `journal_check.openitems`（`connect/ingest/status/plan/commit/get_plan`），
+  异常均为 `ValueError` 子类，CLI 失败退出 2。完整契约见 [docs/open-items.md](docs/open-items.md)。
 
 ## 当前业务与样例
 # Journal trial balance v1

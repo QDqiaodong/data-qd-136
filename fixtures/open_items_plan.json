@@ -1,0 +1,25 @@
+{
+  "seeds": [
+    "D1",
+    "D2",
+    "C1",
+    "C2"
+  ],
+  "rules": [
+    {
+      "debit_party": "party-alpha",
+      "credit_party": "party-charlie",
+      "priority": 0
+    },
+    {
+      "debit_party": "party-alpha",
+      "credit_party": "party-delta",
+      "priority": 1
+    },
+    {
+      "debit_party": "party-bravo",
+      "credit_party": "party-charlie",
+      "priority": 2
+    }
+  ]
+}

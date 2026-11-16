@@ -1,0 +1,115 @@
+{
+  "batch_id": "demo-batch-001",
+  "journal": {
+    "accounts": [
+      {
+        "id": "receivable",
+        "normal": "debit"
+      },
+      {
+        "id": "payable",
+        "normal": "credit"
+      }
+    ],
+    "entries": [
+      {
+        "id": "sale-alpha",
+        "currency": "USD",
+        "lines": [
+          {
+            "account": "receivable",
+            "side": "debit",
+            "amount": 5
+          },
+          {
+            "account": "payable",
+            "side": "credit",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "id": "sale-bravo",
+        "currency": "USD",
+        "lines": [
+          {
+            "account": "receivable",
+            "side": "debit",
+            "amount": 5
+          },
+          {
+            "account": "payable",
+            "side": "credit",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "id": "receipt-charlie",
+        "currency": "USD",
+        "lines": [
+          {
+            "account": "payable",
+            "side": "debit",
+            "amount": 5
+          },
+          {
+            "account": "receivable",
+            "side": "credit",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "id": "receipt-delta",
+        "currency": "USD",
+        "lines": [
+          {
+            "account": "payable",
+            "side": "debit",
+            "amount": 5
+          },
+          {
+            "account": "receivable",
+            "side": "credit",
+            "amount": 5
+          }
+        ]
+      }
+    ]
+  },
+  "items": [
+    {
+      "id": "D1",
+      "entry": "sale-alpha",
+      "line": 0,
+      "party": "party-alpha",
+      "settlement_key": "monthly-netting",
+      "priority": 10
+    },
+    {
+      "id": "D2",
+      "entry": "sale-bravo",
+      "line": 0,
+      "party": "party-bravo",
+      "settlement_key": "monthly-netting",
+      "priority": 20
+    },
+    {
+      "id": "C1",
+      "entry": "receipt-charlie",
+      "line": 1,
+      "party": "party-charlie",
+      "settlement_key": "monthly-netting",
+      "priority": 10
+    },
+    {
+      "id": "C2",
+      "entry": "receipt-delta",
+      "line": 1,
+      "party": "party-delta",
+      "settlement_key": "monthly-netting",
+      "priority": 20
+    }
+  ]
+}
