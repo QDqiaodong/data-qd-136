@@ -4,6 +4,7 @@ Exact minor-unit journals and currency-separated trial balances。业务输入�
 本地开放项核销工作台（独立 `open-items` 子命令组）的字段、报告结构与异常约定详见 [开放项工作台契约](docs/open-items.md)。
 本地期间结转链工作台（独立 `close-chain` 子命令组）的请求字段、报告结构、异常与退出码详见 [期间结转链契约](docs/close-chain.md)。
 报价证据驱动的多币种分录折算（独立 `translate` 子命令）的报价图、折算账务、待处理与报告结构详见 [折算工作台契约](docs/translate.md)。
+库存成本归属与追补发票（独立 `inventory-cost` 子命令）的来源区间流转、前缀成本、追补重估与试算勾稽详见 [库存成本工作台契约](docs/inventory-cost.md)。
 
 ## 安装与演示
 
@@ -97,6 +98,32 @@ journal-check translate --source fixtures/translate_request.json --output run/tr
 - Python 接口在 `journal_check.translate`（`translate/run_file/publish`，纯报价图在
   `journal_check.translate.rates`，校验与账务在 `journal_check.translate.engine`）。
   完整契约见 [docs/translate.md](docs/translate.md)。
+
+## 库存成本归属与追补发票工作台（inventory-cost）
+
+在保留 v1 试算命令、`analyze(data)` 与另三个工作台的同时，新增独立子命令，把收货、领用、
+退回与采购总成本修订（追补发票）事件快照转换为带来源身份的库存估值、部门费用与复式分录。
+全部整数运算、无浮点，不读写其他工作台存储，不做开放项配对、期间结转或币种换算，仅用标准库。
+
+```sh
+journal-check inventory-cost --source fixtures/inventory_cost_request.json --output run/inventory.json
+```
+
+- 顶层恰为 `accounts`、`stocks`、`events`，沿用 8MB 严格 JSON；`stocks` 至多 1000 个
+  `(sku,currency)` 库存池，库存科目集合与应付科目集合必须不相交；`events` 至多 5000 项，
+  按唯一 `seq` 处理、与输入排列无关，数量 `1..10**12`、金额 `0..10**18`，禁止布尔与未知字段。
+- 实物按原收货单位序号的半开区间全程留痕：领用按 `(receipt.seq, 序号)` FIFO，退回按原领用
+  分配倒序撤销并恢复原批原序号、之后仍按原收货年龄参与 FIFO；跨批领用、重复部分退回可追溯，
+  超退、超领、跨池与未来引用整次拒绝。
+- 成本用整批前缀定义 `floor(C*b/Q)-floor(C*a/Q)`，禁止浮点、平均单价再舍入与逐单位展开，
+  支持 `Q=10**12` 且复杂度不随 `Q/C` 增长；reprice 不动实物，按当前所有者（库存或 issue）
+  逐区间列旧/新成本与有符号差额，差额之和恰为整批成本变化。
+- 每个非零归属单独成带来源的平衡分录行、不跨 issue 轧差，零成本流转留实物证据但不生零金额行；
+  输出逐事件分录、归属-分录行对应、逐币种全科目试算表（含零科目）与四类账表勾稽。
+- 结构/校验/计算/I/O 失败退出 2 并保留旧报告，输出拒绝符号链接与源同路径，无部分成功报告。
+- Python 接口在 `journal_check.inventory_cost`（`inventory_cost/run_file/publish`，
+  校验在 `validation`、区间代数在 `intervals`、前缀成本在 `costing`、回放账务在 `engine`）。
+  完整契约见 [docs/inventory-cost.md](docs/inventory-cost.md)。
 
 ## 当前业务与样例
 # Journal trial balance v1

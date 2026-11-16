@@ -21,6 +21,12 @@ single display-currency trial balance from quote evidence::
 
     journal-check translate --source request.json --output report.json
 
+The inventory-cost workbench turns receipt/issue/return/reprice event
+snapshots into traced inventory valuations, department expenses and
+double-entry postings::
+
+    journal-check inventory-cost --source request.json --output report.json
+
 Every workbench failure raises one of the documented exceptions, all of which
 are ``ValueError`` subclasses; the CLI prints the message to stderr, exits 2
 and leaves any existing output file untouched.
@@ -33,6 +39,8 @@ from pathlib import Path
 from .closechain.errors import CloseChainError
 from .closechain.store import Store as CloseChainStore
 from .common import read, save
+from .inventory_cost import run_file as run_inventory_cost
+from .inventory_cost.errors import InventoryCostError
 from .model import analyze
 from .openitems import workbench
 from .openitems.errors import OpenItemError
@@ -43,7 +51,7 @@ from .translate.errors import TranslateError
 DESCRIPTION = 'Exact minor-unit journals and currency-separated trial balances'
 _FAILURE_TYPES = (ValueError, TypeError, KeyError, OSError, OverflowError,
                   RecursionError, OpenItemError, CloseChainError,
-                  TranslateError)
+                  TranslateError, InventoryCostError)
 
 
 def run(source):
@@ -173,6 +181,29 @@ def _run_translate(argv):
 
 
 # ---------------------------------------------------------------------------
+# Inventory-cost subcommand
+# ---------------------------------------------------------------------------
+
+def _run_inventory_cost(argv):
+    parser = argparse.ArgumentParser(
+        prog='journal-check inventory-cost',
+        description='Traced inventory valuation, department expense and '
+                    'double-entry catch-up invoice workbench')
+    parser.add_argument('--source', type=Path, required=True,
+                        help='inventory-cost request JSON, subject to the '
+                             'strict 8 MB limit')
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args(argv)
+    if args.source.resolve() == args.output.resolve():
+        raise ValueError('input and output must differ')
+    report = run_inventory_cost(args.source)
+    save(args.output, report)
+    print(json.dumps(report, sort_keys=True, ensure_ascii=False,
+                     allow_nan=False))
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -187,6 +218,8 @@ def main(argv=None):
             return 0
         if argv and argv[0] == 'translate':
             return _run_translate(argv[1:])
+        if argv and argv[0] == 'inventory-cost':
+            return _run_inventory_cost(argv[1:])
     except _FAILURE_TYPES as error:
         print(str(error), file=sys.stderr)
         return 2

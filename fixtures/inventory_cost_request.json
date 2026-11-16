@@ -1,0 +1,24 @@
+{
+  "accounts": [
+    {"id": "raw_materials", "normal": "debit"},
+    {"id": "goods_in_transit", "normal": "debit"},
+    {"id": "trade_payables", "normal": "credit"},
+    {"id": "dept_a_expense", "normal": "debit"},
+    {"id": "dept_b_expense", "normal": "debit"},
+    {"id": "unused_zero_account", "normal": "credit"}
+  ],
+  "stocks": [
+    {"sku": "WIDGET", "currency": "USD", "inventory_account": "raw_materials", "payable_account": "trade_payables"},
+    {"sku": "GADGET", "currency": "EUR", "inventory_account": "goods_in_transit", "payable_account": "trade_payables"}
+  ],
+  "events": [
+    {"id": "rcv_widget_1", "seq": 10, "type": "receipt", "sku": "WIDGET", "currency": "USD", "quantity": 5, "total_cost": 17},
+    {"id": "iss_widget_a", "seq": 20, "type": "issue", "sku": "WIDGET", "currency": "USD", "quantity": 3, "expense_account": "dept_a_expense"},
+    {"id": "ret_widget_a", "seq": 30, "type": "return", "issue": "iss_widget_a", "quantity": 1},
+    {"id": "iss_widget_b", "seq": 40, "type": "issue", "sku": "WIDGET", "currency": "USD", "quantity": 2, "expense_account": "dept_b_expense"},
+    {"id": "rcv_gadget_1", "seq": 50, "type": "receipt", "sku": "GADGET", "currency": "EUR", "quantity": 2, "total_cost": 0},
+    {"id": "iss_gadget_a", "seq": 60, "type": "issue", "sku": "GADGET", "currency": "EUR", "quantity": 1, "expense_account": "dept_a_expense"},
+    {"id": "rpr_widget_1", "seq": 70, "type": "reprice", "receipt": "rcv_widget_1", "total_cost": 20},
+    {"id": "rpr_gadget_1", "seq": 80, "type": "reprice", "receipt": "rcv_gadget_1", "total_cost": 8}
+  ]
+}
