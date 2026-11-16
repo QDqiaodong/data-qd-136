@@ -2,6 +2,7 @@
 
 Exact minor-unit journals and currency-separated trial balances。业务输入、计算和当前边界详见 [数据契约](docs/contract.md)。
 本地开放项核销工作台（独立 `open-items` 子命令组）的字段、报告结构与异常约定详见 [开放项工作台契约](docs/open-items.md)。
+本地期间结转链工作台（独立 `close-chain` 子命令组）的请求字段、报告结构、异常与退出码详见 [期间结转链契约](docs/close-chain.md)。
 
 ## 安装与演示
 
@@ -47,6 +48,31 @@ journal-check open-items commit  --db run/ledger.sqlite --plan-id <plan_id>
   竞争提交最多一份生效，重复提交跨进程返回原回执。
 - Python 接口在 `journal_check.openitems`（`connect/ingest/status/plan/commit/get_plan`），
   异常均为 `ValueError` 子类，CLI 失败退出 2。完整契约见 [docs/open-items.md](docs/open-items.md)。
+
+## 期间结转链工作台（close-chain）
+
+在保留 v1 试算命令、`analyze(data)` 与开放项工作台的同时，新增独立子命令组，把连续期间的
+完整分录快照、科目结转规则与独立期初控制数发布为**不可变 generation** 的可追溯关账结果。
+不读写开放项数据库，不做往来核销、汇兑或日期推断；各币种分别计算，仅用标准库。
+
+```sh
+journal-check close-chain apply --store run/chain --source fixtures/close_chain_request.json
+journal-check close-chain show  --store run/chain --generation <generation_id> --period <period_id>
+```
+
+- `apply` 沿用 8MB 严格 JSON；顶层恰为 `chain_id`、`expected_head`、`start`、`periods`，
+  初建 `expected_head` 为 `null`、`start` 为 1，此后按调用者读到的当前 head 做乐观并发控制，
+  竞争发布最多一份成功，失败者明确 `ConflictError` 且不隐式重基。
+- 每期间恰为 `id`、`journal`、`roles`、`retained`、`incoming`、`opening_checks`；
+  借正贷负整数余额，result 科目期末清零、代数和转入 credit-normal 的 retained，
+  调整前后逐币种借贷守恒。
+- `incoming` 用纯整数最大余数法按权重分配 carry 余额（含零余额源、禁止浮点与逐单位循环）；
+  `opening_checks` 独立核对“币种 × carry 科目”笛卡尔积上的实际期初，任一不符整次拒绝。
+- 修订第 k 期必须逐期重算 k 至链尾并重新校验后期原始控制数；发布通过单原子 head 切换完成，
+  崩溃只可能暴露完整旧链或完整新链；`show` 定点读取历史 generation 并核文件哈希。
+- Python 接口在 `journal_check.closechain`（`open_store/apply/show`，纯算法在
+  `journal_check.closechain.engine`），异常均为 `ValueError` 子类，CLI 失败退出 2。
+  完整契约见 [docs/close-chain.md](docs/close-chain.md)。
 
 ## 当前业务与样例
 # Journal trial balance v1

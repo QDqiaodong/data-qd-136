@@ -11,6 +11,11 @@ The open-items workbench is an independent subcommand group::
     journal-check open-items plan    --db ledger.sqlite --request plan.json
     journal-check open-items commit  --db ledger.sqlite --plan-id <id>
 
+The close-chain workbench is another independent subcommand group::
+
+    journal-check close-chain apply --store chain-dir --source request.json
+    journal-check close-chain show  --store chain-dir [--generation id] --period id
+
 Every workbench failure raises one of the documented exceptions, all of which
 are ``ValueError`` subclasses; the CLI prints the message to stderr, exits 2
 and leaves any existing output file untouched.
@@ -20,6 +25,8 @@ import json
 import sys
 from pathlib import Path
 
+from .closechain.errors import CloseChainError
+from .closechain.store import Store as CloseChainStore
 from .common import read, save
 from .model import analyze
 from .openitems import workbench
@@ -28,7 +35,7 @@ from .openitems.storage import connect as open_items_connect
 
 DESCRIPTION = 'Exact minor-unit journals and currency-separated trial balances'
 _FAILURE_TYPES = (ValueError, TypeError, KeyError, OSError, OverflowError,
-                  RecursionError, OpenItemError)
+                  RecursionError, OpenItemError, CloseChainError)
 
 
 def run(source):
@@ -96,6 +103,45 @@ def _run_open_items(argv):
 
 
 # ---------------------------------------------------------------------------
+# Close-chain subcommand group
+# ---------------------------------------------------------------------------
+
+def _close_chain_parser():
+    parser = argparse.ArgumentParser(
+        prog='journal-check close-chain',
+        description='Local immutable period close-chain workbench')
+    actions = parser.add_subparsers(dest='action', required=True)
+
+    apply = actions.add_parser(
+        'apply', help='validate a request and publish one immutable generation')
+    apply.add_argument('--store', type=Path, required=True,
+                       help='chain store directory (created when absent)')
+    apply.add_argument('--source', type=Path, required=True,
+                       help='request JSON, subject to the strict 8 MB limit')
+    apply.add_argument('--output', type=Path)
+
+    show = actions.add_parser(
+        'show', help='read one historical period with hash verification')
+    show.add_argument('--store', type=Path, required=True)
+    show.add_argument('--generation', default=None,
+                       help='generation id; defaults to the current head')
+    show.add_argument('--period', required=True, help='period id')
+    show.add_argument('--output', type=Path)
+    return parser
+
+
+def _run_close_chain(argv):
+    args = _close_chain_parser().parse_args(argv)
+    store = CloseChainStore(args.store)
+    if args.action == 'apply':
+        request, request_sha256 = read(args.source)
+        report = store.apply(request, request_sha256)
+    else:  # show
+        report = store.show(args.generation, args.period)
+    _emit(report, getattr(args, 'output', None))
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -104,6 +150,9 @@ def main(argv=None):
     try:
         if argv and argv[0] == 'open-items':
             _run_open_items(argv[1:])
+            return 0
+        if argv and argv[0] == 'close-chain':
+            _run_close_chain(argv[1:])
             return 0
     except _FAILURE_TYPES as error:
         print(str(error), file=sys.stderr)

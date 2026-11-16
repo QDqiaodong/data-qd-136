@@ -12,3 +12,13 @@
 `journal-check open-items ...`，Python 接口为 `journal_check.openitems`。它复用本文件的标识符、
 整数金额、8MB 严格 JSON 与借贷平衡规则，但拥有独立的字段、报告结构和异常约定，详见
 [open-items.md](open-items.md)。
+
+---
+
+# 期间结转链工作台（独立功能）
+
+在不改变本 v1 试算契约与开放项工作台的前提下，新增本地不可变期间结转链工作台，命令为
+`journal-check close-chain ...`，Python 接口为 `journal_check.closechain`。它复用本文件的
+标识符、整数金额、8MB 严格 JSON 与借贷平衡规则，但拥有独立的请求字段、结果结构、持久化
+版本管理与异常约定，且不读写开放项数据库、不做往来核销、汇兑或日期推断，详见
+[close-chain.md](close-chain.md)。
